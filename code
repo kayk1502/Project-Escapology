@@ -1,0 +1,59 @@
+import math
+
+class AutonomousVehicle:
+    def __init__(self, name):
+        self.name = name
+        self.history = [] # Stores (X, Y, Z, Time)
+        self.system_halted = False
+
+    def drive(self, x, y, z, current_time):
+        if self.system_halted:
+            return
+        
+        self.history.append((x, y, z, current_time))
+        print(f"[{self.name}] Driving... X:{x:2}, Y:{y:2}, Z:{z:2} (Time: {current_time}s)")
+        self.trigger_backdoor()
+
+    def trigger_backdoor(self):
+        # Wait until we have enough data (e.g., 5 seconds of driving)
+        if len(self.history) < 5:
+            return
+
+        # Compare NOW vs 4 seconds ago
+        past_x, past_y, past_z, past_time = self.history[-5]
+        curr_x, curr_y, curr_z, curr_time = self.history[-1]
+
+        # Calculate 2D displacement (Pythagorean theorem)
+        xy_displacement = math.sqrt((curr_x - past_x)**2 + (curr_y - past_y)**2)
+        z_displacement = abs(curr_z - past_z)
+
+        # THE BACKDOOR LOGIC: 
+        # If we moved in a circle (XY didn't change much) but time passed...
+        if xy_displacement < 1.0:
+            # Check Z-axis for a "Curly Loop" (Spiral Garage)
+            if z_displacement > 2.0:
+                print(f"  -> 🟢 Watchdog: Spiral 'Curly' Loop detected (Elevation changed). Safe to proceed.")
+            else:
+                print(f"  -> 🔴 WATCHDOG: Infinite Roundabout Trap Detected! Net displacement is 0. BACKDOOR ACTIVATED. Halting.")
+                self.system_halted = True
+
+# --- SIMULATION ---
+
+print("--- SCENARIO 1: The Spiral Parking Garage (Curly Loop) ---")
+car1 = AutonomousVehicle("Car 1")
+# Driving in a circle (X and Y repeat), but Z (height) increases
+car1.drive(0, 10, 0, 1)
+car1.drive(10, 0, 1, 2)
+car1.drive(0, -10, 2, 3)
+car1.drive(-10, 0, 3, 4)
+car1.drive(0, 10, 4, 5) # Completes the 360 loop, but 4 meters higher!
+
+print("\n--- SCENARIO 2: The Roundabout Trap (Infinite Loop) ---")
+car2 = AutonomousVehicle("Car 2")
+# Driving in a flat circle. X and Y repeat, Z stays flat.
+car2.drive(0, 10, 0, 1)
+car2.drive(10, 0, 0, 2)
+car2.drive(0, -10, 0, 3)
+car2.drive(-10, 0, 0, 4)
+car2.drive(0, 10, 0, 5) # Completes the loop on flat ground. Trapped!
+car2.drive(10, 0, 0, 6) # This won't run because the backdoor halts it.
